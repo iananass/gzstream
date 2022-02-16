@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
     // now use the shorter way with the constructor to open the same file
-    ogzstream out(argv[2]);
+    gz::ofstream out(argv[2]);
     if (!out.good()) {
         std::cerr << "ERROR: Opening file `" << argv[2] << "' failed.\n";
         return EXIT_FAILURE;

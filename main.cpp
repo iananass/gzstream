@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 int main() {
-    ogzstream    out;
+    gz::ofstream    out;
     out.open("test.z");
     if ( ! out.good()) {
         std::cerr << "ERROR: Opening file\n";
@@ -13,7 +13,7 @@ int main() {
         out << "HELLO WORLD" << i << '\n' ;
     }
     out.close();
-    igzstream in("test.z");
+    gz::ifstream in("test.z");
     if ( ! in.good()) {
         std::cerr << "ERROR: Opening file failed.\n";
         return EXIT_FAILURE;

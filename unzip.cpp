@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
         std::cerr << "Usage: " << argv[0] << " <in-file> <out-file>\n";
         return EXIT_FAILURE;
     }
-    igzstream in(argv[1]);
+    gz::ifstream in(argv[1]);
     if (!in.good()) {
         std::cerr << "ERROR: Opening file `" << argv[1] << "' failed.\n";
         return EXIT_FAILURE;
