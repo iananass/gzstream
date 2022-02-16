@@ -3,14 +3,10 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
-#include <zlib.h>
+#include <bzlib.h>
 
-namespace gz
+namespace bz
 {
-
-// ----------------------------------------------------------------------------
-// Internal classes to implement gzstream. See below for user classes.
-// ----------------------------------------------------------------------------
 
 class streambuf : public std::streambuf
 {
@@ -18,7 +14,8 @@ private:
     static const int bufferSize = 47 + 256;    // size of data buff
     // totals 512 bytes under g++ for ifstream at the end.
 
-    gzFile file;               // file handle for compressed file
+    BZFILE* _out = nullptr;
+    FILE* _out_raw = nullptr;
     char buffer[bufferSize]; // data buffer
     bool opened = false;             // open/close state of stream
     int mode;               // I/O mode
@@ -28,7 +25,9 @@ private:
         // Separate the writing of the buffer from overflow() and
         // sync() operation.
         int w = pptr() - pbase();
-        if (gzwrite(file, pbase(), w) != w)
+        int err;
+        BZ2_bzWrite(&err, _out, pbase(), w);
+        if (err != BZ_OK)
             return EOF;
         pbump(-w);
         return w;
@@ -44,29 +43,37 @@ public:
         // ASSERT: both input & output capabilities will not be used together
     }
 
-    bool is_open() const
+    bool is_open()
     { return opened; }
 
     streambuf* open(const char* name, int open_mode)
     {
         if (is_open())
-            return (streambuf*) 0;
+            return nullptr;
         mode = open_mode;
         // no append nor read/write mode
-        if ((mode & std::ios::ate) || (mode & std::ios::app)
-            || ((mode & std::ios::in) && (mode & std::ios::out)))
-            return (streambuf*) 0;
-        char fmode[10];
-        char* fmodeptr = fmode;
+        if ((mode & std::ios::ate) || (mode & std::ios::app) || ((mode & std::ios::in) && (mode & std::ios::out)))
+            return nullptr;
+        char fmode[4];
         if (mode & std::ios::in)
-            *fmodeptr++ = 'r';
+            fmode[0] = 'r';
         else if (mode & std::ios::out)
-            *fmodeptr++ = 'w';
-        *fmodeptr++ = 'b';
-        *fmodeptr = '\0';
-        file = gzopen(name, fmode);
-        if (file == 0)
-            return (streambuf*) 0;
+            fmode[0] = 'w';
+        fmode[1] = 'b';
+        fmode[2] = '\0';
+
+        _out_raw = fopen(name, fmode);
+        if (! _out_raw)
+            return nullptr;
+        int err;
+        if (mode & std::ios::out)
+            _out = BZ2_bzWriteOpen(&err, _out_raw, 6, 0, 0);
+        else if (mode & std::ios::in)
+            _out = BZ2_bzReadOpen(&err, _out_raw, 0, 0, 0, 0);
+        if (err != BZ_OK) {
+            fclose(_out_raw);
+            return nullptr;
+        }
         opened = true;
         return this;
     }
@@ -76,17 +83,25 @@ public:
         if (is_open()) {
             sync();
             opened = false;
-            if (gzclose(file) == Z_OK)
-                return this;
+            int err;
+            if (mode & std::ios::out)
+                BZ2_bzWriteClose(&err, _out, 0, nullptr, nullptr);
+            else if (mode & std::ios::in)
+                BZ2_bzReadClose (&err, _out);
+
+            fclose(_out_raw);
+            _out = nullptr;
+            _out_raw = nullptr;
+            return err == BZ_OK ? this : nullptr;
         }
-        return (streambuf*) 0;
+        return nullptr;
     }
 
     ~streambuf()
     { close(); }
 
     virtual int overflow(int c = EOF)
-    { // used for output buffer only
+    {
         if (!(mode & std::ios::out) || !opened)
             return EOF;
         if (c != EOF) {
@@ -99,28 +114,26 @@ public:
     }
 
     virtual int underflow()
-    { // used for input buffer only
+    {
         if (gptr() && (gptr() < egptr()))
             return *reinterpret_cast<unsigned char*>( gptr());
 
         if (!(mode & std::ios::in) || !opened)
             return EOF;
-        // Josuttis' implementation of inbuf
         int n_putback = gptr() - eback();
         if (n_putback > 4)
             n_putback = 4;
         memcpy(buffer + (4 - n_putback), gptr() - n_putback, n_putback);
 
-        int num = gzread(file, buffer + 4, bufferSize - 4);
+        int err;
+        int num = BZ2_bzRead ( &err, _out,  buffer + 4, bufferSize - 4 );
         if (num <= 0) // ERROR or EOF
             return EOF;
 
-        // reset buffer pointers
         setg(buffer + (4 - n_putback),   // beginning of putback area
              buffer + 4,                 // read position
              buffer + 4 + num);          // end of buffer
 
-        // return next character
         return *reinterpret_cast<unsigned char*>( gptr());
     }
 
@@ -138,3 +151,5 @@ public:
 };
 
 } // gz
+
+
