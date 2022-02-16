@@ -1,5 +1,5 @@
-#include "gzstream.h"
-#include "bzstream.h"
+#include <gzstream.h>
+#include <bzstream.h>
 #include "fstream.h"
 #include <iostream>
 #include <fstream>
