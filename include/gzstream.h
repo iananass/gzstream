@@ -68,6 +68,10 @@ public:
         if (file == 0)
             return (streambuf*) 0;
         opened = true;
+        setp(buffer, buffer + (bufferSize - 1));
+        setg(buffer + 4,     // beginning of putback area
+             buffer + 4,     // read position
+             buffer + 4);    // end position
         return this;
     }
 
