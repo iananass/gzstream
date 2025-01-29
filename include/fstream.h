@@ -88,4 +88,23 @@ public:
     }
 };
 
+template <typename StreamBuf>
+ifstream<StreamBuf> &getline(ifstream<StreamBuf> &ifs, std::string &s, const char delim = '\n')
+{
+    char c;
+    s.clear();
+    while (ifs.get(c) && (c != delim)) {
+        s += c;
+    }
+    return ifs;
+}
+
+template <typename StreamBuf>
+ifstream<StreamBuf> &ignore(ifstream<StreamBuf> &ifs, size_t limit, const char delim = '\n')
+{
+    char c;
+    while (limit-- && ifs.get(c) && (c != delim));
+    return ifs;
+}
+
 }
