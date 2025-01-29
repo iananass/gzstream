@@ -25,6 +25,26 @@ public:
         buf.close();
     }
 
+    std::streampos seekg(std::streamoff off, std::ios_base::seekdir way)
+    {
+      return buf.seekg(off, way);
+    }
+
+    std::streampos seekg(std::streampos sp)
+    {
+      return buf.seekg(sp);
+    }
+
+    std::streampos tellg()
+    {
+      return buf.tellg();
+    }
+
+    bool is_open() const
+    {
+      return buf.is_open();
+    }
+
     void open(const char* name, int open_mode)
     {
         if (!buf.open(name, open_mode))
@@ -59,6 +79,15 @@ public:
 
     typename streambase<StreamBuf>::streambuf * rdbuf()
     { return streambase<StreamBuf>::rdbuf(); }
+
+    std::streampos seekg(std::streamoff off, std::ios_base::seekdir way)
+    { return streambase<StreamBuf>::seekg(off, way); }
+
+    std::streampos seekg(std::streampos sp)
+    { return streambase<StreamBuf>::seekg(sp); }
+
+    std::streampos tellg()
+    { return streambase<StreamBuf>::tellg(); }
 
     void open(const char* name, int open_mode = std::ios::in)
     {

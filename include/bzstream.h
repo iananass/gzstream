@@ -78,6 +78,62 @@ public:
         return this;
     }
 
+    std::streampos seekg(std::streamoff off, std::ios_base::seekdir way)
+    {
+        std::streampos cur = -1;
+        if (mode & std::ios::in)
+        {
+            std::streampos pos;
+            cur = tellg();
+            switch (way)
+            {
+            case std::ios_base::cur:
+              pos = cur + off;
+              break;
+            case std::ios_base::beg:
+              pos = off;
+              break;
+            case std::ios_base::end:
+              throw "Method seekg() from end is not available for bzstream buffers";
+              break;
+            }
+            if (pos < cur)
+            {
+                int err;
+                sync();
+                BZ2_bzReadClose(&err, _out);
+                if (err == BZ_OK)
+                {
+                    fseek(_out_raw, 0, SEEK_SET);
+                    _out = BZ2_bzReadOpen(&err, _out_raw, 0, 0, 0, 0);
+                }
+                if (err != BZ_OK) {
+                  fclose(_out_raw);
+                  throw "Method seekg() has failed during seekg(). Now file is closed()";
+                }
+                cur = 0;
+            }
+            while (cur < pos)
+            {
+              underflow();
+              cur = ftell(_out_raw);
+            }
+        }
+        return cur;
+    }
+
+    std::streampos seekg(std::streampos sp)
+    {
+        return seekg(sp, std::ios_base::beg);
+    }
+
+    std::streampos tellg()
+    {
+        if (mode & std::ios::in)
+            return ftell(_out_raw);
+        return -1;
+    }
+
     streambuf* close()
     {
         if (is_open()) {

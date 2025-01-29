@@ -75,6 +75,36 @@ public:
         return this;
     }
 
+    std::streampos seekg(std::streamoff off, std::ios_base::seekdir way)
+    {
+        if (mode & std::ios::in) {
+            int whence = 0;
+            switch (way) {
+            case std::ios_base::cur: whence = SEEK_CUR; break;
+            case std::ios_base::beg: whence = SEEK_SET; break;
+            case std::ios_base::end: whence = SEEK_END; break;
+            }
+            setp(buffer, buffer + (bufferSize - 1));
+            setg(buffer + 4,     // beginning of putback area
+                 buffer + 4,     // read position
+                 buffer + 4);    // end position
+            return gzseek(file, off, whence);
+        }
+        return -1;
+    }
+
+    std::streampos seekg(std::streampos sp)
+    {
+        return seekg(sp, std::ios_base::beg);
+    }
+
+    std::streampos tellg()
+    {
+        if (mode & std::ios::in)
+            return gztell(file);
+        return -1;
+    }
+
     streambuf* close()
     {
         if (is_open()) {
