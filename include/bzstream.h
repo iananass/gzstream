@@ -43,7 +43,7 @@ public:
         // ASSERT: both input & output capabilities will not be used together
     }
 
-    bool is_open()
+    bool is_open() const
     { return opened; }
 
     streambuf* open(const char* name, int open_mode)
