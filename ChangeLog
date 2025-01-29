@@ -1,0 +1,78 @@
+2025-01-29  DoccY <alban.mancheron@lirmm.fr>
+
+	* include/bzstream.h, include/fstream.h, include/gzstream.h:
+	Add `tellg()` and `seekg()` (2 versions) methods.
+	
+	Those methods doesn't work exactly the same way accroding to the kind of stream buffer.
+	
+	For the `gz::streambuf` class:
+	  Since the methods are mostly wrappers of the libz dedicated functions, they behaves exactly
+	  the same. Thus, the `tellg()` method returns the "uncompressed" file offset of the (virtual)
+	  reading cursor and the `seekg()` methods reads the input stream until the wanted position.
+	  If the position to reach is before the current reading cursor, then the file reading cursor
+	  is reste to the beginning of the file.
+	
+	For the `bz::streambuf` class:
+	  The `tellg()` method of returns the raw file offset of the reading cursor.
+	  Since the bzip2 library doesn't provide internal mechanism to seek the reading cursor at some
+	  position, the stream is simply read until the wanted position is reached. If the position to
+	  reach is before the current reading cursor, then the file is prior closed and open again in
+	  order to reset the current reading cursor (to the beginning). That is, for bzip2 compressed
+	  streams, the `seekg()` methods mostly behaves like the `gz::streambuf` ones.
+	  Notice that these methods have not heavily been tested and may fail and/or give erroneous
+	  results.
+	
+	In both cases, keep in mind that seeking the reading cursor is not achieved in constant time and
+	may lead to very poor performances.
+	
+	
+2025-01-29  DoccY <alban.mancheron@lirmm.fr>
+
+	* include/bzstream.h:
+	Add missing `const` cv-qualifier to `is_open()` method of `bz::streambuf` class.
+	
+	
+2025-01-29  DoccY <alban.mancheron@lirmm.fr>
+
+	* include/gzstream.h:
+	BugFix: on re-opening files (compressed with gzip), the remaining data of the stream buffer was used since internal stream buffer pointers weren't reset.
+	
+	
+2025-01-29  DoccY <alban.mancheron@lirmm.fr>
+
+	* include/fstream.h:
+	Overload `getline()` and `ignore()` functions.
+	
+	
+2022-02-16  Alex Matyzhonok <a.matyzhonok@adm-systems.com>
+
+	* CMakeLists.txt, bzstream.h => include/bzstream.h, fstream.h =>
+	include/fstream.h, gzstream.h => include/gzstream.h, dc.cpp =>
+	samples/dc.cpp, sample.cpp => samples/sample.cpp:
+	fix directory structure
+	
+	
+2022-02-16  Alex Matyzhonok <a.matyzhonok@adm-systems.com>
+
+	* README.md:
+	simplest readme
+	
+	
+2022-02-16  Alex Matyzhonok <a.matyzhonok@adm-systems.com>
+
+	* CMakeLists.txt, Copyright, bzstream.h, dc.cpp, fstream.h,
+	gzstream.h, main.cpp, sample.cpp, unzip.cpp, version, zip.cpp:
+	template streams
+	
+	
+2022-02-16  Alex Matyzhonok <a.matyzhonok@adm-systems.com>
+
+	* CMakeLists.txt, gzstream.cpp, gzstream.h, main.cpp, unzip.cpp,
+	zip.cpp:
+	c++ header-only
+	
+	
+2022-02-16  Alex Matyzhonok <a.matyzhonok@adm-systems.com>
+
+	* lib as is
+

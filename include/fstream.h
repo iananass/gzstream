@@ -25,6 +25,26 @@ public:
         buf.close();
     }
 
+    std::streampos seekg(std::streamoff off, std::ios_base::seekdir way)
+    {
+      return buf.seekg(off, way);
+    }
+
+    std::streampos seekg(std::streampos sp)
+    {
+      return buf.seekg(sp);
+    }
+
+    std::streampos tellg()
+    {
+      return buf.tellg();
+    }
+
+    bool is_open() const
+    {
+      return buf.is_open();
+    }
+
     void open(const char* name, int open_mode)
     {
         if (!buf.open(name, open_mode))
@@ -60,6 +80,15 @@ public:
     typename streambase<StreamBuf>::streambuf * rdbuf()
     { return streambase<StreamBuf>::rdbuf(); }
 
+    std::streampos seekg(std::streamoff off, std::ios_base::seekdir way)
+    { return streambase<StreamBuf>::seekg(off, way); }
+
+    std::streampos seekg(std::streampos sp)
+    { return streambase<StreamBuf>::seekg(sp); }
+
+    std::streampos tellg()
+    { return streambase<StreamBuf>::tellg(); }
+
     void open(const char* name, int open_mode = std::ios::in)
     {
         streambase<StreamBuf>::open(name, open_mode);
@@ -87,5 +116,24 @@ public:
         streambase<StreamBuf>::open(name, open_mode);
     }
 };
+
+template <typename StreamBuf>
+ifstream<StreamBuf> &getline(ifstream<StreamBuf> &ifs, std::string &s, const char delim = '\n')
+{
+    char c;
+    s.clear();
+    while (ifs.get(c) && (c != delim)) {
+        s += c;
+    }
+    return ifs;
+}
+
+template <typename StreamBuf>
+ifstream<StreamBuf> &ignore(ifstream<StreamBuf> &ifs, size_t limit, const char delim = '\n')
+{
+    char c;
+    while (limit-- && ifs.get(c) && (c != delim));
+    return ifs;
+}
 
 }
