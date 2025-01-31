@@ -16,6 +16,7 @@ private:
 
     BZFILE* _out = nullptr;
     FILE* _out_raw = nullptr;
+    std::streampos _pos = -1;
     char buffer[bufferSize]; // data buffer
     bool opened = false;             // open/close state of stream
     int mode;               // I/O mode
@@ -75,6 +76,11 @@ public:
             return nullptr;
         }
         opened = true;
+        _pos = 0;
+        setp(buffer, buffer + (bufferSize - 1));
+        setg(buffer + 4,     // beginning of putback area
+             buffer + 4,     // read position
+             buffer + 4);    // end position
         return this;
     }
 
@@ -88,16 +94,18 @@ public:
             switch (way)
             {
             case std::ios_base::cur:
-              pos = cur + off;
-              break;
+                if (cur == -1)
+                    return cur;
+                pos = cur + off;
+                break;
             case std::ios_base::beg:
-              pos = off;
-              break;
+                pos = off;
+                break;
             case std::ios_base::end:
-              throw "Method seekg() from end is not available for bzstream buffers";
-              break;
+                throw "Method seekg() from end is not available for bzstream buffers";
+                break;
             }
-            if (pos < cur)
+            if ((pos < cur) || (cur == -1))
             {
                 int err;
                 sync();
@@ -111,12 +119,24 @@ public:
                   fclose(_out_raw);
                   throw "Method seekg() has failed during seekg(). Now file is closed()";
                 }
+                _pos = 0;
                 cur = 0;
+                setg(buffer + 4,     // beginning of putback area
+                     buffer + 4,     // read position
+                     buffer + 4);    // end position
             }
             while (cur < pos)
             {
-              underflow();
-              cur = ftell(_out_raw);
+              std::streamsize nb = in_avail();
+              if (!nb) {
+                underflow();
+                nb = in_avail();
+              }
+              if (cur + nb > pos) {
+                nb = pos - cur;
+              }
+              gbump(nb);
+              cur += nb;
             }
         }
         return cur;
@@ -130,7 +150,8 @@ public:
     std::streampos tellg()
     {
         if (mode & std::ios::in)
-            return ftell(_out_raw);
+            if (_pos >= in_avail())
+                return _pos - in_avail();
         return -1;
     }
 
@@ -148,6 +169,7 @@ public:
             fclose(_out_raw);
             _out = nullptr;
             _out_raw = nullptr;
+            _pos = -1;
             return err == BZ_OK ? this : nullptr;
         }
         return nullptr;
@@ -184,8 +206,12 @@ public:
         int err;
         int num = BZ2_bzRead ( &err, _out,  buffer + 4, bufferSize - 4 );
         if (num <= 0) // ERROR or EOF
+        {
+            _pos = -1;
             return EOF;
+        }
 
+        _pos += num;
         setg(buffer + (4 - n_putback),   // beginning of putback area
              buffer + 4,                 // read position
              buffer + 4 + num);          // end of buffer

@@ -47,12 +47,14 @@ public:
 
     void open(const char* name, int open_mode)
     {
+        close();
         if (!buf.open(name, open_mode))
             clear(rdstate() | std::ios::badbit);
     }
 
     void close()
     {
+        clear();
         if (buf.is_open())
             if (!buf.close())
                 clear(rdstate() | std::ios::badbit);
